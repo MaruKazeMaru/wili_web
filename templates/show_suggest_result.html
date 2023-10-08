@@ -1,0 +1,29 @@
+<script src="/static/show_heatmap.js"></script>
+<script src="/static/gmm_to_array.js"></script>
+
+<canvas id="canvas" style="width: 200px; height: 200px;">
+</canvas>
+
+<script>
+    document.addEventListener(
+        "DOMContentLoaded",
+        function(){
+            var heatmap_params = {{ heatmap_params|tojson }};
+
+            console.log(heatmap_params);
+
+            var w = 50;
+            var h = 50;
+            var vals = gmmToArray(
+                heatmap_params.motion_num,
+                heatmap_params.weights,
+                heatmap_params.avrs,
+                heatmap_params.vars,
+                [-2.0, -2.0], [2.0, 2.0], w, h
+            );
+            // console.log(vals);
+            showHeatmap("canvas", w, h, vals);
+        },
+        false
+    )
+</script>
