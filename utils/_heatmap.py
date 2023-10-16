@@ -3,12 +3,23 @@ from numpy import ndarray
 from PIL import Image
 import io
 import base64
+import colorsys
+
+def to_rgb(value:float):
+    return colorsys.hsv_to_rgb(0.6666 * (1.0 - value), 1.0, 1.0)
+
+to_rgb_np = np.vectorize(to_rgb)
 
 def heatmap_as_b64txt(values:ndarray):
     vs = values / np.max(values)
+    # vs = np.array(to_rgb_np(vs))
     vs *= 255
     vs = vs.astype(np.uint8)
+
     img_np = ndarray((vs.shape[0], vs.shape[1], 3), dtype=np.uint8)
+    # img_np[:,:,0] = vs[:,0]
+    # img_np[:,:,1] = vs[:,1]
+    # img_np[:,:,2] = vs[:,2]
     img_np[:,:,0] = vs
     img_np[:,:,1] = vs
     img_np[:,:,2] = vs

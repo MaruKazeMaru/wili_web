@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template, jsonify
-from utils import socket_call_sync, heatmap_as_b64txt, gmm_to_arr_for_heatmap
+from utils import *
 import struct
 import numpy as np
 
@@ -50,11 +50,22 @@ def suggest_test():
     # create heatmap
     vals = gmm_to_arr_for_heatmap( \
         n, weights, avrs, vars, \
-        (-2, 2), (-2, 2), 20, 20 \
+        (-3, 3), (-3, 3), 50, 50 \
     )
     hm_b64 = heatmap_as_b64txt(vals)
 
     return render_template( \
         'show_suggest_result.html', \
         heatmap_png='data:image/png;base64,' + hm_b64 \
+    )
+
+@app.route('/tr_prob')
+def tr_prob():
+    tr_prob = get_tr_prob('socket', timeout=10)
+    if tr_prob is None:
+        return 500, 'socket timeout'
+    
+    return render_template( \
+        'tr_prob.html', \
+        tr_prob=tr_prob \
     )
