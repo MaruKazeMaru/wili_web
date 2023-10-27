@@ -1,7 +1,11 @@
-from flask import Flask, request, render_template, jsonify
-from utils import *
+from flask import Flask, render_template
 import struct
 import numpy as np
+import matplotlib.pyplot as plt
+from socket import timeout
+
+from utils import *
+from consts import MEDIA_ROOT
 
 app = Flask(__name__)
 
@@ -12,12 +16,14 @@ def index():
 @app.route('/suggest_test')
 def suggest_test():
     # get values from ROS2 through socket
-    suggest_res = socket_call_sync('socket', b'd', timeout=15)
-    if suggest_res is None:
+    try:
+        suggest_res = socket_call_sync('socket', b'd', timeout=15)
+    except timeout:
         return 500, 'socket timeout'
 
-    heatmap_res = socket_call_sync('socket', b'c', timeout=15)
-    if heatmap_res is None:
+    try:
+        heatmap_res = socket_call_sync('socket', b'c', timeout=15)
+    except timeout:
         return 500, 'socket timeout'
 
     if not heatmap_res[0] == suggest_res[0]:
@@ -48,21 +54,27 @@ def suggest_test():
     )
 
     # create heatmap
+    x_step = 50
+    y_step = 50
     vals = gmm_to_arr_for_heatmap( \
         n, weights, avrs, vars, \
-        (-3, 3), (-3, 3), 50, 50 \
+        (-3, 3), (-3, 3), x_step, y_step \
     )
-    hm_b64 = heatmap_as_b64txt(vals)
 
-    return render_template( \
-        'show_suggest_result.html', \
-        heatmap_png='data:image/png;base64,' + hm_b64 \
-    )
+    fig, ax = plt.subplots(figsize=(x_step, y_step))
+    ax.pcolor(vals)
+    plt.axis('tight')
+    plt.axis('off')
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+    plt.savefig(MEDIA_ROOT + 'suggest_result.png')
+
+    return render_template('show_suggest_result.html')
 
 @app.route('/tr_prob')
 def tr_prob():
-    tr_prob = get_tr_prob('socket', timeout=10)
-    if tr_prob is None:
+    try:
+        tr_prob = get_tr_prob('socket', timeout=10)
+    except timeout:
         return 500, 'socket timeout'
     
     return render_template( \

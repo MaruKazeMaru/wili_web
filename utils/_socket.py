@@ -10,27 +10,20 @@ def socket_call_sync(file_name:str, request:bytes, timeout=60) -> bytes:
         proto=0 \
     )
     sock.settimeout(timeout)
-    try:
-        sock.connect('/tmp/wili/{}.socket'.format(file_name))
-        sock.send(request)
-        response = sock.recv(1024)
-        sock.close()
-        return response
-    except socket.timeout:
-        return None
+    sock.connect('/tmp/wili/{}.socket'.format(file_name))
+    sock.send(request)
+    response = sock.recv(1024)
+    sock.close()
+    return response
 
 
-def get_motion_num(socket_file_name:str, timeout=60) -> int | None:
+def get_motion_num(socket_file_name:str, timeout=60) -> int:
     res = socket_call_sync(socket_file_name, b'a', timeout=15)
-    if res is None:
-        return None
     return res[0]
 
 
-def get_tr_prob(socket_file_name:str, timeout=60) -> ndarray | None:
+def get_tr_prob(socket_file_name:str, timeout=60) -> ndarray:
     res = socket_call_sync(socket_file_name, b'b', timeout=15)
-    if res is None:
-        return None
 
     n = res[0]
     fmt = 'f' * (n * n)
@@ -41,10 +34,8 @@ def get_tr_prob(socket_file_name:str, timeout=60) -> ndarray | None:
     return tr_prob
 
 
-def get_heatmaps(socket_file_name:str, timeout=60) -> (ndarray, ndarray) | None:
+def get_heatmaps(socket_file_name:str, timeout=60) -> (ndarray, ndarray):
     res = socket_call_sync(socket_file_name, b'c', timeout=15)
-    if res is None:
-        return None
 
     n = res[0]
     fmt = 'f' * (5 * n)
@@ -55,10 +46,8 @@ def get_heatmaps(socket_file_name:str, timeout=60) -> (ndarray, ndarray) | None:
     return heatmaps
 
 
-def get_suggest(socket_file_name:str, timeout=60) -> ndarray | None:
+def get_suggest(socket_file_name:str, timeout=60) -> ndarray:
     res = socket_call_sync(socket_file_name, b'b', timeout=15)
-    if res is None:
-        return None
 
     n = res[0]
     fmt = 'f' * n
