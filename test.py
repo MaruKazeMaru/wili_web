@@ -1,24 +1,28 @@
-from utils import *
+import os
 import numpy as np
-import base64
+from utils import create_motion_list_img
 
-def gmm():
-    n = 3
-    w = np.array([1, 1, 1], dtype=np.float32)
-    avr = np.array([[2,0], [-1,1.73], [-1,-1.73]], dtype=np.float32)
-    var = np.array([[[1,0],[0,1]], [[1,0],[0,1]], [[1,0],[0,1]]], dtype=np.float32)
-    vals = gmm_to_arr_for_heatmap( \
-        n, w, avr, var, \
-        (-2,2), (-2,2), 7, 7 \
+def uniform_simplex(dim:int):
+    v = np.random.exponential(scale = 1, size=dim * dim).reshape((dim, dim))
+    v = (v / np.sum(v, axis=0)).T
+    return v
+
+
+def main():
+    x = np.random.uniform(-9, 9, 4)
+    y = np.random.uniform(-5, 5, 4)
+    avrs = np.vstack([x, y]).T
+    print('avrs=')
+    print(avrs)
+    tr_prob = uniform_simplex(dim=4)
+    print('tr_prob=')
+    print(tr_prob)
+    create_motion_list_img(
+        avrs,
+        tr_prob,
+        '../motion_list.png',
+        disp_range=(-8, -4.5, 8, 4.5)
     )
-    return vals
-
-
-def heatmap():
-    img_bytes = base64.b64decode(heatmap_as_b64txt(gmm()))
-    with open('test.png', mode='wb') as f:
-        f.write(img_bytes)
-
 
 if __name__ == '__main__':
-    heatmap()
+    main()

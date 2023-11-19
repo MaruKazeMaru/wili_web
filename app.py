@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from socket import timeout
 
 from utils import *
-from consts import MEDIA_ROOT
+from consts import MEDIA_ROOT, DB_PATH
 
 app = Flask(__name__)
 
@@ -77,7 +77,22 @@ def tr_prob():
     except timeout:
         return 500, 'socket timeout'
     
-    return render_template( \
-        'tr_prob.html', \
-        tr_prob=tr_prob \
+    return render_template(
+        'tr_prob.html',
+        tr_prob=tr_prob
+    )
+
+
+
+@app.route('/motion_list')
+def motion_list():
+    db_ope = db_operation(DB_PATH)
+    tr_prob = db_ope.get_tr_prob_mat()
+    avrs, _ = db_ope.get_gaussian_all()
+
+    img_path = MEDIA_ROOT + 'motion_list.png'
+    create_motion_list_img(avrs, tr_prob, img_path)
+    return render_template(
+        'motion_list.html',
+        motion_list_img=img_path
     )
