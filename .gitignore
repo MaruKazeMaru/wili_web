@@ -2,3 +2,5 @@
 *.pyc
 env/
 consts.py
+media/
+db.sqlite3

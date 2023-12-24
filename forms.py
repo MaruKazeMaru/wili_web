@@ -2,26 +2,29 @@ import os
 import re
 from PIL import Image, UnidentifiedImageError
 
-from .consts import MEDIA_ROOT_DIR
+from wilitools import WiliDB, UnexistRecord
+
+from consts import MEDIA_ROOT_DIR
 
 class Form:
-    def __init__(self, form_dict:dict):
+    def __init__(self):
         self.errs = {}
 
     def validate(self) -> bool:
         return True
 
-
 class CreateAreaForm(Form):
-    def __init__(self):
+    def __init__(self, db:WiliDB):
         super().__init__()
         self.name:str = None
         self.width:float = None
-        self.blueprint_path:str = None
+        self.blueprint = None
+        self.blueprint_ext:str = None
         # self.xmin:float = None
         # self.xmax:float = None
         # self.ymin:float = None
         # self.ymax:float = None
+        self._db = db
 
 
     def validate(self, request) -> bool:
@@ -29,43 +32,73 @@ class CreateAreaForm(Form):
 
         d = request.form
 
+        # validate name
         try:
             name = str(d['name'])
         except IndexError:
             self.errs['name'] = 'no input'
         except ValueError:
             self.errs['name'] = 'unexpected input'
-        else:
+
+        if not 'name' in self.errs:
+            if name == '':
+                self.errs['name'] = 'empty'
+
+        if not 'name' in self.errs:
             pattern = re.compile('^[a-zA-Z][a-zA-Z0-9_]*')
-            span = pattern.match(name).span()
-            if span[0] == 0 and span[1] == len(name):
+            match = pattern.match(name)
+            if match is None:
+                self.errs['name'] = 'contains prohibitted letter'
+            else:
+                span = match.span()
+                if not (span[0] == 0 and span[1] == len(name)):
+                    self.errs['name'] = 'contains prohibitted letter'
+
+        if not 'name' in self.errs:
+            try:
+                self._db.get_area_id(name)
+            except UnexistRecord:
                 self.name = name
             else:
-                self.errs['name'] = 'need: 1st letter is a-z or A-Z & 2nd~ letter is a-z, A-Z, 0-9 or _'
+                self.errs['name'] = 'already using'
 
+        # validate width
         try:
             width = float(d['width'])
         except IndexError:
             self.errs['width'] = 'no input'
         except ValueError:
-            self.errs['width'] = 'must be number'
+            self.errs['width'] = 'not number'
         else:
             if width > 0:
                 self.width = width
             else:
-                self.errs['width'] = 'need: width > 0'
+                self.errs['width'] = 'width <= 0'
 
-        if len(self.errs) == 0:
+        # validate blueprint
+        try:
             f = request.files['blueprint']
-            try:
-                Image.open(f)
-            except UnidentifiedImageError:
-                self.errs['blueprint'] = 'unknown file type'
-            else:
-                os.mkdir(os.path.join(MEDIA_ROOT_DIR, self.name))
-                _, ext = os.path.splitext(f.filename)
-                self.blueprint_path = os.path.join(MEDIA_ROOT_DIR, self.name, 'blueprint' + ext)
-                f.save(self.blueprint_path)
+            blueprint = Image.open(f)
+        except IndexError:
+            self.errs['blueprint'] = 'no input'
+        except UnidentifiedImageError:
+            self.errs['blueprint'] = 'unknown file type'
+        else:
+            self.blueprint = blueprint
+            _, self.blueprint_ext = os.path.splitext(f.filename)
+
+        # if len(self.errs) == 0:
+        #     # save blueprint
+        #     dir = os.path.join(MEDIA_ROOT_DIR, self.name)
+        #     os.makedirs(dir, mode=0o777, exist_ok=True)
+        #     _, ext = os.path.splitext(f.filename)
+        #     self.blueprint_path = os.path.join(dir, 'blueprint' + ext)
+        #     f.save(self.blueprint_path)
+
+        #     return True
+        # else:
+        #     return False
+        return len(self.errs) == 0
 
         # try:
         #     self.xmin = float(form_dict['xmin'])
@@ -101,4 +134,4 @@ class CreateAreaForm(Form):
         # if self.xmin and self.xmax and self.xmin > self.xmax:
         #     self.errs['x'] = 'need xmin < xmax'
 
-        return len(self.errs) == 0
+        # return len(self.errs) == 0

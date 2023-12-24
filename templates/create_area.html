@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+
+<body>
+    <div style="margin: 10%;">
+        <form method="post" enctype="multipart/form-data">
+            <div style="margin-bottom: 2em;">
+                <div style="text-align: center;">
+                    name:
+                    <input type="text" name="name">
+                </div>
+                <div style="text-align: left;">
+                    1st letter: a-z or A-Z<br>
+                    2nd~ letter: a-z, A-Z, 0-9 or _
+                </div>
+            </div>
+        
+            <div style="margin-bottom: 2em;">
+                <div style="text-align: center;">
+                    width:
+                    <input type="number" name="width">
+                </div>
+                <div style="text-align: left;">
+                    width > 0
+                </div>
+            </div>
+    
+            <div style="margin-bottom: 2em;">
+                <div style="text-align: center;">
+                    blueprint:
+                    <input type="file" name="blueprint" accept="image/png, image/jpeg image/jpg">
+                </div>
+                <div style="text-align: left;">
+                    extension: .png or .jpeg(.jpg)
+                </div>
+            </div>
+
+            {% if errs %}
+            <div style="text-align: center; color: red;">
+                {{ errs | tojson }}
+            </div>
+            {% endif %}
+
+            <div style="text-align: center;">
+                <button type="submit">
+                    submit
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
