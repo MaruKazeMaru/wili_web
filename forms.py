@@ -19,7 +19,7 @@ class CreateAreaForm(Form):
         self.name:str = None
         self.width:float = None
         self.blueprint = None
-        self.blueprint_ext:str = None
+        self.blueprint_meta:dict = None
         # self.xmin:float = None
         # self.xmax:float = None
         # self.ymin:float = None
@@ -85,7 +85,13 @@ class CreateAreaForm(Form):
             self.errs['blueprint'] = 'unknown file type'
         else:
             self.blueprint = blueprint
-            _, self.blueprint_ext = os.path.splitext(f.filename)
+            _, ext = os.path.splitext(f.filename)
+            w, h = blueprint.size
+            self.blueprint_meta = {
+                'extension': ext,
+                'width': w, 'height': h,
+                'original_name': f.filename
+            }
 
         # if len(self.errs) == 0:
         #     # save blueprint

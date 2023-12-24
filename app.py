@@ -1,9 +1,11 @@
+import json
 import os
 from socket import timeout
 import struct
 
 from flask import Flask, \
-    render_template, request, redirect, url_for
+    render_template, request, redirect, url_for, \
+    send_from_directory
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
@@ -11,14 +13,38 @@ from PIL import Image
 import wilitools
 
 from utils import *
-from consts import MEDIA_ROOT_DIR, DB_PATH
+from consts import MEDIA_ROOT_DIR, DB_PATH, STATIC_ROOT_DIR, TEMPLATE_ROOT_DIR
 from forms import CreateAreaForm
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder=STATIC_ROOT_DIR,
+    template_folder=TEMPLATE_ROOT_DIR
+)
 
 @app.route('/')
 def index():
     return 'hello'
+
+
+# this route is only for debug
+@app.route('/media/<dir>/<filename>')
+def media(dir:str, filename:str):
+    return send_from_directory(os.path.join(MEDIA_ROOT_DIR, dir), filename)
+
+
+# this route is for debug only
+# @app.route('/media/<name>')
+# def media(name:str):
+#     ps = name.split('/')
+#     if len(ps) > 1:
+#         dir = os.path.sep.join(ps[0:-1])
+#         dir = os.path.join(MEDIA_ROOT_DIR, dir)
+#     else:
+#         dir = MEDIA_ROOT_DIR
+    
+#     return send_from_directory(dir, ps[-1])
+
 
 @app.route('/suggest_test')
 def suggest_test():
@@ -105,7 +131,9 @@ def create_area():
             )
             dir = os.path.join(MEDIA_ROOT_DIR, 'a{}'.format(area_id))
             os.makedirs(dir, mode=0o775, exist_ok=True)
-            form.blueprint.save(os.path.join(dir, 'blueprint' + form.blueprint_ext))
+            form.blueprint.save(os.path.join(dir, 'blueprint.png'))
+            with open(os.path.join(dir, 'blueprint_meta.json'), 'w') as f:
+                json.dump(form.blueprint_meta, f)
             return redirect(url_for('success_create_area', area_id=area_id))
         else:
             print(form.errs)
@@ -124,12 +152,34 @@ def motion_list(area_id:int):
     db = wilitools.WiliDB(DB_PATH)
     tr_prob = db.get_tr_prob_mat(area_id)
     gaussian = db.get_gaussian_all(area_id)
+    name, floor = db.get_area_meta(area_id)
+
+    lap_img_name = 'motion_list_lap.png'
+    dir = 'a{}'.format(area_id)
+    img_dir = os.path.join(MEDIA_ROOT_DIR, dir)
+    lap_img_path = os.path.join(img_dir, lap_img_name)
+
+    with open(os.path.join(MEDIA_ROOT_DIR, dir, 'blueprint_meta.json'), mode='r') as fp:
+        meta = json.load(fp)
+        img_size = (meta['width'], meta['height'])
+
+    create_motion_list_img(floor, gaussian.avrs, tr_prob, lap_img_path, img_size=img_size)
+
+    blueprint = Image.open(os.path.join(img_dir, 'blueprint.png')).convert('RGB')
+    bp = np.array(blueprint, dtype=np.float32)
+    a = 0.25
+    bp = bp * a + (255 * (1 - a))
+    blueprint = Image.fromarray(bp.astype(np.uint8), mode='RGB').convert('RGBA')
+
+    lap_img = Image.open(lap_img_path).convert('RGBA')
 
     img_name = 'motion_list.png'
-    img_path = os.path.join(MEDIA_ROOT_DIR, img_name)
-    img_route = '/media/' + img_name
-    create_motion_list_img(gaussian.avrs, tr_prob, img_path)
+    img = Image.alpha_composite(blueprint, lap_img)
+    img.save(os.path.join(img_dir, img_name))
+
+    img_route = '/media/{}/{}'.format(dir, img_name)
+
     return render_template(
         'motion_list.html',
-        motion_list_img=img_route
+        img_route=img_route
     )
