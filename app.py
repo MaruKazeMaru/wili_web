@@ -183,3 +183,59 @@ def motion_list(area_id:int):
         'motion_list.html',
         img_route=img_route
     )
+
+
+@app.route('/suggest/<int:area_id>')
+def suggest(area_id:int):
+    db = wilitools.WiliDB(DB_PATH)
+
+    name, floor = db.get_area_meta(area_id)
+
+    init_prob = db.get_init_prob_all(area_id)
+    tr_prob = db.get_tr_prob_mat(area_id)
+    gaussian = db.get_gaussian_all(area_id)
+
+    samples = db.get_samples(area_id)
+    dens_samples = db.get_dens_samples(area_id)
+
+    suggester = wilitools.Suggester(init_prob, tr_prob, gaussian, samples, dens_samples)
+    weight = suggester.suggest()
+
+    dir = 'a{}'.format(area_id)
+    with open(os.path.join(MEDIA_ROOT_DIR, dir, 'blueprint_meta.json'), mode='r') as fp:
+        meta = json.load(fp)
+        img_size = (meta['width'], meta['height'])
+
+    img_dir = os.path.join(MEDIA_ROOT_DIR, dir)
+
+    lap_img_name = 'suggest_lap.png'
+    lap_img_path = os.path.join(img_dir, lap_img_name)
+    create_heatmap(gaussian, weight, floor, 0.3, lap_img_path, img_size=img_size)
+
+    blueprint = Image.open(os.path.join(img_dir, 'blueprint.png')).convert('RGB')
+    bp = np.array(blueprint, dtype=np.float32)
+    a = 0.5
+    bp = bp * a + (255 * (1 - a))
+    blueprint = Image.fromarray(bp.astype(np.uint8), mode='RGB').convert('RGBA')
+    # blueprint = Image.open(os.path.join(img_dir, 'blueprint.png')).convert('RGBA')
+    # # bp = np.ndarray((img_size[1], img_size[0], 4), dtype=np.uint8)
+    # # bp[:,:,[0,1,2]] = np.array(blueprint, dtype=np.uint8)
+    # # bp[:,:,3] = 255
+    # # blueprint = Image.fromarray(bp, mode='RGBA')
+
+    lap_img = Image.open(lap_img_path).convert('RGB')
+    li = np.ndarray((img_size[1], img_size[0], 4), np.uint8)
+    li[:,:,[0,1,2]] = np.array(lap_img, dtype=np.uint8)
+    li[:,:,3] = 191
+    lap_img = Image.fromarray(li, mode='RGBA')
+
+    img_name = 'suggest.png'
+    img = Image.alpha_composite(blueprint, lap_img)
+    img.save(os.path.join(img_dir, img_name))
+
+    img_route = '/media/{}/{}'.format(dir, img_name)
+
+    return render_template(
+        'suggest.html',
+        img_route=img_route
+    )

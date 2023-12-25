@@ -118,14 +118,18 @@ def create_motion_list_img(
     return
 
 
-def create_heatmap(path:str, gaussian:Gaussian, weight:ndarray, floor:Floor, delta:float):
+def create_heatmap(
+    gaussian:Gaussian, weight:ndarray,
+    floor:Floor, delta:float,
+    img_path:str, img_size:tuple[int, int]=(960, 540)
+):
     x = floor.lattice_from_delta(delta)
-    nr = x.shape[1]
-    nc = x.shape[0]
-    h = gaussian.weighted(x.reshape((nr * nc, 2)), weight)
-    h = h.reshape(nc, nr, 2)
-    fig = plt.figure(dpi=1, figsize=(nc, nr))
-    ax = fig.add_axes()
+    print(x.shape)
+    h = gaussian.weighted(x, weight)
+    h = h.T
+    fig = plt.figure(dpi=1, figsize=img_size)
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+    ax = fig.add_subplot()
     ax.axis('off')
     ax.pcolor(h)
-    fig.savefig(path)
+    fig.savefig(img_path)
