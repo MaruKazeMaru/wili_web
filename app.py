@@ -179,9 +179,12 @@ def motion_list(area_id:int):
 
     img_route = '/media/{}/{}'.format(dir, img_name)
 
+    motion_ids = db.get_motion_ids(area_id)
+
     return render_template(
         'motion_list.html',
-        img_route=img_route
+        img_route=img_route,
+        motion_ids=motion_ids
     )
 
 

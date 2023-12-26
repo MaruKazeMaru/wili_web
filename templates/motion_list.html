@@ -1,3 +1,16 @@
+{% extends "base.html" %}
+{% block body %}
 <div style="text-align: center;">
-    <img src={{img_route}} style="width: 100%; max-height: 80%;">
+    <p style="font-size: 4rem; margin: 1rem 0px;">動作一覧</p>
 </div>
+<div style="display: flex; justify-content: space-around;">
+    <img src={{img_route}} style="width: 70%; max-width: 960px; min-width: 240px; margin: auto;">
+    <div style="width: 25%; min-width: 120px; margin: 0px auto; text-align: left; display: flex; flex-flow: column; justify-content: space-between;">
+        {% for mid in motion_ids %}
+        <div style="margin: auto; margin-left: 0px;">
+            <a style="font-size: 2rem;" href="/motion/{{ mid }}">動作 {{ loop.index }}</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
